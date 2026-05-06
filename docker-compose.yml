@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  sentinel-investigator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sentinel-investigator:latest
+    container_name: sentinel-investigator
+    ports:
+      - "8501:8501"
+    environment:
+      # Azure auth - override via .env or environment variables
+      - AZURE_AUTH_METHOD=${AZURE_AUTH_METHOD:-device_code}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}
+      # Sentinel workspace
+      - SENTINEL_WORKSPACE_ID=${SENTINEL_WORKSPACE_ID:-}
+      - SENTINEL_RESOURCE_GROUP=${SENTINEL_RESOURCE_GROUP:-}
+      - SENTINEL_SUBSCRIPTION_ID=${SENTINEL_SUBSCRIPTION_ID:-}
+      # OpenAI
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      # Threat Intel
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
+      - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
+    volumes:
+      # Persist investigation data
+      - sentinel_data:/app/data
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  sentinel_data:
+    driver: local
